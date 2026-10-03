@@ -138,7 +138,33 @@ echo "Installing binary to ~/.local/bin..."
 mkdir -p ~/.local/bin
 cp build/bin/clipboard-gnome "$TARGET_BIN"
 
-# 11. Start application
+# 11. Install desktop entries (applications launcher and autostart)
+echo "Installing desktop launcher and autostart entries..."
+mkdir -p ~/.local/share/applications ~/.config/autostart
+cat <<EOF > ~/.local/share/applications/clipboard-gnome.desktop
+[Desktop Entry]
+Type=Application
+Name=Clipboard-Gnome
+Comment=Hybrid Wayland Clipboard Manager
+Exec=$TARGET_BIN
+Icon=$HOME/.local/share/icons/clipboard-gnome.png
+Terminal=false
+Categories=Utility;
+EOF
+
+cat <<EOF > ~/.config/autostart/clipboard-gnome.desktop
+[Desktop Entry]
+Type=Application
+Name=Clipboard-Gnome
+Comment=Hybrid Wayland Clipboard Manager
+Exec=$TARGET_BIN --hidden
+Icon=$HOME/.local/share/icons/clipboard-gnome.png
+Terminal=false
+Categories=Utility;
+X-GNOME-Autostart-enabled=true
+EOF
+
+# 12. Start application
 echo "Starting Clipboard-Gnome (v$NEW_VERSION)..."
 nohup "$TARGET_BIN" --hidden > /dev/null 2>&1 &
 

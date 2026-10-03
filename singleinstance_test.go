@@ -66,4 +66,25 @@ func TestSingleInstanceSocketCommunication(t *testing.T) {
 	if resp.PID != os.Getpid() {
 		t.Errorf("Expected PID %d, got %d", os.Getpid(), resp.PID)
 	}
+
+	// Send subsequent show request on the same connection
+	showReq := InstanceRequest{Action: "show", Version: Version, PID: os.Getpid()}
+	showData, _ := json.Marshal(showReq)
+	_, err = conn.Write(append(showData, '\n'))
+	if err != nil {
+		t.Fatalf("Failed to write show request on same connection: %v", err)
+	}
+
+	showRespLine, err := reader.ReadBytes('\n')
+	if err != nil {
+		t.Fatalf("Failed to read show response: %v", err)
+	}
+
+	var showResp InstanceResponse
+	if err := json.Unmarshal(showRespLine, &showResp); err != nil {
+		t.Fatalf("Failed to unmarshal show response: %v", err)
+	}
+	if showResp.Status != "ok" {
+		t.Errorf("Expected show status 'ok', got %q", showResp.Status)
+	}
 }

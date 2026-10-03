@@ -145,6 +145,7 @@ func InitSingleInstance(app *App, args []string) *SingleInstanceManager {
 				}
 				qData, _ := json.Marshal(quitReq)
 				_, _ = conn.Write(append(qData, '\n'))
+				_, _ = reader.ReadBytes('\n')
 
 				// Wait for running process to terminate
 				waitForProcessExit(resp.PID, 2*time.Second)
@@ -158,6 +159,7 @@ func InitSingleInstance(app *App, args []string) *SingleInstanceManager {
 				}
 				sData, _ := json.Marshal(showReq)
 				_, _ = conn.Write(append(sData, '\n'))
+				_, _ = reader.ReadBytes('\n')
 
 				fmt.Printf("Clipboard-Gnome is already running (PID %d, version %s). Sent show command.\n",
 					resp.PID, resp.Version)
@@ -209,50 +211,52 @@ func (m *SingleInstanceManager) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
-	line, err := reader.ReadBytes('\n')
-	if err != nil {
-		return
-	}
-
-	var req InstanceRequest
-	if err := json.Unmarshal(line, &req); err != nil {
-		return
-	}
-
-	switch req.Action {
-	case "status":
-		resp := InstanceResponse{
-			Status:    "ok",
-			Version:   Version,
-			BuildDate: BuildDate,
-			PID:       os.Getpid(),
-			StartTime: m.startTime,
-		}
-		data, _ := json.Marshal(resp)
-		_, _ = conn.Write(append(data, '\n'))
-
-	case "show":
-		resp := InstanceResponse{Status: "ok"}
-		data, _ := json.Marshal(resp)
-		_, _ = conn.Write(append(data, '\n'))
-
-		if m.app != nil {
-			logger.Info("SingleInstance: Received show request from PID %d", req.PID)
-			m.app.onShowUI()
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			return
 		}
 
-	case "quit":
-		logger.Info("SingleInstance: Received quit request from newer version (%s, PID %d). Shutting down...",
-			req.Version, req.PID)
-		resp := InstanceResponse{Status: "quitting"}
-		data, _ := json.Marshal(resp)
-		_, _ = conn.Write(append(data, '\n'))
-
-		m.Close()
-		if m.app != nil && m.app.ctx != nil {
-			m.app.shutdown(m.app.ctx)
+		var req InstanceRequest
+		if err := json.Unmarshal(line, &req); err != nil {
+			continue
 		}
-		os.Exit(0)
+
+		switch req.Action {
+		case "status":
+			resp := InstanceResponse{
+				Status:    "ok",
+				Version:   Version,
+				BuildDate: BuildDate,
+				PID:       os.Getpid(),
+				StartTime: m.startTime,
+			}
+			data, _ := json.Marshal(resp)
+			_, _ = conn.Write(append(data, '\n'))
+
+		case "show":
+			resp := InstanceResponse{Status: "ok"}
+			data, _ := json.Marshal(resp)
+			_, _ = conn.Write(append(data, '\n'))
+
+			if m.app != nil {
+				logger.Info("SingleInstance: Received show request from PID %d", req.PID)
+				m.app.onShowUI()
+			}
+
+		case "quit":
+			logger.Info("SingleInstance: Received quit request from newer version (%s, PID %d). Shutting down...",
+				req.Version, req.PID)
+			resp := InstanceResponse{Status: "quitting"}
+			data, _ := json.Marshal(resp)
+			_, _ = conn.Write(append(data, '\n'))
+
+			m.Close()
+			if m.app != nil && m.app.ctx != nil {
+				m.app.shutdown(m.app.ctx)
+			}
+			os.Exit(0)
+		}
 	}
 }
 

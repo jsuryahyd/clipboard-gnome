@@ -119,6 +119,8 @@ func (a *App) onShowUI() {
 	if a.ctx != nil {
 		runtime.WindowShow(a.ctx)
 		runtime.WindowUnminimise(a.ctx)
+		runtime.WindowSetAlwaysOnTop(a.ctx, true)
+		runtime.WindowCenter(a.ctx)
 		runtime.EventsEmit(a.ctx, "ui:focus_search", nil)
 	}
 	if a.dbusClient != nil {
@@ -165,9 +167,13 @@ func (a *App) ensureAutostart(homeDir string) {
 	if err != nil {
 		execPath = "clipboard-gnome"
 	}
+	installedPath := filepath.Join(homeDir, ".local", "bin", "clipboard-gnome")
+	if _, err := os.Stat(installedPath); err == nil {
+		execPath = installedPath
+	}
 
 	iconPath := filepath.Join(homeDir, ".local", "share", "icons", "clipboard-gnome.png")
-	desktopContent := fmt.Sprintf(`[Desktop Entry]
+	autostartContent := fmt.Sprintf(`[Desktop Entry]
 Type=Application
 Name=Clipboard-Gnome
 Comment=Hybrid Wayland Clipboard Manager
@@ -179,17 +185,27 @@ X-GNOME-Autostart-enabled=true
 `, execPath, iconPath)
 
 	desktopPath := filepath.Join(autostartDir, "clipboard-gnome.desktop")
-	err = os.WriteFile(desktopPath, []byte(desktopContent), 0644)
+	err = os.WriteFile(desktopPath, []byte(autostartContent), 0644)
 	if err != nil {
 		logger.Warn("Failed to write autostart desktop file: %v", err)
 	} else {
 		logger.Info("Autostart desktop entry verified at %s", desktopPath)
 	}
 
+	appsContent := fmt.Sprintf(`[Desktop Entry]
+Type=Application
+Name=Clipboard-Gnome
+Comment=Hybrid Wayland Clipboard Manager
+Exec=%s
+Icon=%s
+Terminal=false
+Categories=Utility;
+`, execPath, iconPath)
+
 	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
 	_ = os.MkdirAll(appsDir, 0755)
 	appsDesktopPath := filepath.Join(appsDir, "clipboard-gnome.desktop")
-	_ = os.WriteFile(appsDesktopPath, []byte(desktopContent), 0644)
+	_ = os.WriteFile(appsDesktopPath, []byte(appsContent), 0644)
 }
 
 // --- Frontend Bindings ---
