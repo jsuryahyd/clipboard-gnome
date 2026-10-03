@@ -2,6 +2,7 @@ package dbus
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/godbus/dbus/v5"
@@ -9,9 +10,11 @@ import (
 )
 
 const (
-	DBusService   = "org.gnome.Shell"
-	DBusObject    = "/org/gnome/Shell/Extensions/ClipboardGo"
-	DBusInterface = "org.gnome.Shell.Extensions.ClipboardGo"
+	DBusService          = "org.gnome.Shell"
+	DBusObjectGnome      = "/org/gnome/Shell/Extensions/ClipboardGnome"
+	DBusInterfaceGnome   = "org.gnome.Shell.Extensions.ClipboardGnome"
+	DBusObjectLegacy     = "/org/gnome/Shell/Extensions/ClipboardGo"
+	DBusInterfaceLegacy  = "org.gnome.Shell.Extensions.ClipboardGo"
 )
 
 type Client struct {
@@ -43,16 +46,18 @@ func NewClient(onClipboardChanged func(itemType, content string), onShowUI func(
 	// Register signal channel with DBus connection
 	conn.Signal(c.signalChan)
 
-	// Add match rules for extension signals
-	matchRules := []string{
-		fmt.Sprintf("type='signal',interface='%s',member='ClipboardChanged'", DBusInterface),
-		fmt.Sprintf("type='signal',interface='%s',member='ShowUI'", DBusInterface),
-	}
-
-	for _, rule := range matchRules {
-		call := conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, rule)
-		if call.Err != nil {
-			logger.Warn("DBus AddMatch rule warning (%s): %v", rule, call.Err)
+	// Add match rules for extension signals (both Gnome and legacy Go interfaces)
+	interfaces := []string{DBusInterfaceGnome, DBusInterfaceLegacy}
+	for _, iface := range interfaces {
+		matchRules := []string{
+			fmt.Sprintf("type='signal',interface='%s',member='ClipboardChanged'", iface),
+			fmt.Sprintf("type='signal',interface='%s',member='ShowUI'", iface),
+		}
+		for _, rule := range matchRules {
+			call := conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, rule)
+			if call.Err != nil {
+				logger.Warn("DBus AddMatch rule warning (%s): %v", rule, call.Err)
+			}
 		}
 	}
 
@@ -75,10 +80,9 @@ func (c *Client) listenLoop() {
 				continue
 			}
 
-			logger.Debug("Received DBus signal: %s.%s", sig.Name, sig.Name)
+			logger.Debug("Received DBus signal: %s", sig.Name)
 
-			switch sig.Name {
-			case DBusInterface + ".ClipboardChanged":
+			if strings.HasSuffix(sig.Name, ".ClipboardChanged") {
 				if len(sig.Body) >= 2 {
 					itemType, ok1 := sig.Body[0].(string)
 					content, ok2 := sig.Body[1].(string)
@@ -86,13 +90,43 @@ func (c *Client) listenLoop() {
 						c.OnClipboardChanged(itemType, content)
 					}
 				}
-			case DBusInterface + ".ShowUI":
+			} else if strings.HasSuffix(sig.Name, ".ShowUI") {
 				if c.OnShowUI != nil {
 					c.OnShowUI()
 				}
 			}
 		}
 	}
+}
+
+// ActivateWindow requests GNOME Shell extension to focus/raise the application window.
+func (c *Client) ActivateWindow() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.isClosed || c.conn == nil {
+		return fmt.Errorf("dbus client is closed")
+	}
+
+	// Try ClipboardGnome interface first
+	obj := c.conn.Object(DBusService, dbus.ObjectPath(DBusObjectGnome))
+	var success bool
+	call := obj.Call(DBusInterfaceGnome+".ActivateWindow", 0).Store(&success)
+	if call == nil {
+		logger.Debug("DBus ActivateWindow succeeded via ClipboardGnome (result: %v)", success)
+		return nil
+	}
+
+	// Fallback to ClipboardGo legacy interface
+	objLegacy := c.conn.Object(DBusService, dbus.ObjectPath(DBusObjectLegacy))
+	callLegacy := objLegacy.Call(DBusInterfaceLegacy+".ActivateWindow", 0).Store(&success)
+	if callLegacy == nil {
+		logger.Debug("DBus ActivateWindow succeeded via legacy ClipboardGo (result: %v)", success)
+		return nil
+	}
+
+	logger.Debug("DBus ActivateWindow calls failed: %v", call.Error())
+	return call
 }
 
 // InjectPaste calls the GNOME Extension DBus method to set content and simulate Ctrl+V
@@ -104,15 +138,24 @@ func (c *Client) InjectPaste(itemType, content string) error {
 		return fmt.Errorf("dbus client is closed")
 	}
 
-	obj := c.conn.Object(DBusService, dbus.ObjectPath(DBusObject))
-	call := obj.Call(DBusInterface+".InjectPaste", 0, itemType, content)
-	if call.Err != nil {
-		logger.Error("DBus InjectPaste call failed: %v", call.Err)
-		return call.Err
+	// Try ClipboardGnome first
+	obj := c.conn.Object(DBusService, dbus.ObjectPath(DBusObjectGnome))
+	call := obj.Call(DBusInterfaceGnome+".InjectPaste", 0, itemType, content)
+	if call.Err == nil {
+		logger.Info("DBus InjectPaste successfully sent to ClipboardGnome extension (type: %s)", itemType)
+		return nil
 	}
 
-	logger.Info("DBus InjectPaste successfully sent to extension (type: %s)", itemType)
-	return nil
+	// Fallback to ClipboardGo legacy
+	objLegacy := c.conn.Object(DBusService, dbus.ObjectPath(DBusObjectLegacy))
+	callLegacy := objLegacy.Call(DBusInterfaceLegacy+".InjectPaste", 0, itemType, content)
+	if callLegacy.Err == nil {
+		logger.Info("DBus InjectPaste successfully sent to legacy ClipboardGo extension (type: %s)", itemType)
+		return nil
+	}
+
+	logger.Error("DBus InjectPaste call failed: %v", call.Err)
+	return call.Err
 }
 
 // Close cleans up DBus connections

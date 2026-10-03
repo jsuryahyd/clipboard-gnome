@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"log"
+	"os"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -19,6 +21,12 @@ var icon []byte
 func main() {
 	app := NewApp()
 
+	// Handle single-instance lock, version checks, command-line flags
+	instanceMgr := InitSingleInstance(app, os.Args[1:])
+	defer instanceMgr.Close()
+
+	app.startHidden = instanceMgr.StartHidden
+
 	err := wails.Run(&options.App{
 		Title:             "Clipboard-Gnome",
 		Width:             420,
@@ -29,12 +37,17 @@ func main() {
 		Frameless:         true,
 		AlwaysOnTop:       true,
 		HideWindowOnClose: true,
+		StartHidden:       instanceMgr.StartHidden,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0}, // Transparent background for rounded CSS container
 		OnStartup:        app.startup,
-		OnShutdown:       app.shutdown,
+		OnDomReady:       app.domReady,
+		OnShutdown: func(ctx context.Context) {
+			instanceMgr.Close()
+			app.shutdown(ctx)
+		},
 		Linux: &linux.Options{
 			Icon:                icon,
 			WindowIsTranslucent: true,

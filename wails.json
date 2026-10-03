@@ -10,7 +10,7 @@
   "info": {
     "companyName": "Clipboard-Gnome",
     "productName": "Clipboard-Gnome",
-    "productVersion": "1.0.0",
+    "productVersion": "1.0.1",
     "copyright": "Copyright 2026",
     "comments": "Hybrid Wayland Clipboard Manager"
   }

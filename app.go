@@ -17,11 +17,12 @@ import (
 )
 
 type App struct {
-	ctx        context.Context
-	database   *db.DB
-	dbusClient *dbus.Client
-	incognito  bool
-	mu         sync.RWMutex
+	ctx         context.Context
+	database    *db.DB
+	dbusClient  *dbus.Client
+	incognito   bool
+	startHidden bool
+	mu          sync.RWMutex
 }
 
 func NewApp() *App {
@@ -107,12 +108,24 @@ func (a *App) onClipboardChanged(itemType, content string) {
 	runtime.EventsEmit(a.ctx, "clipboard:changed", newItem)
 }
 
+func (a *App) domReady(ctx context.Context) {
+	if a.startHidden {
+		runtime.WindowHide(ctx)
+	}
+}
+
 func (a *App) onShowUI() {
-	logger.Info("ShowUI signal received from GNOME Extension")
+	logger.Info("ShowUI requested (showing window)")
 	if a.ctx != nil {
 		runtime.WindowShow(a.ctx)
 		runtime.WindowUnminimise(a.ctx)
 		runtime.EventsEmit(a.ctx, "ui:focus_search", nil)
+	}
+	if a.dbusClient != nil {
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			_ = a.dbusClient.ActivateWindow()
+		}()
 	}
 }
 
