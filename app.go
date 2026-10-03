@@ -109,6 +109,7 @@ func (a *App) onClipboardChanged(itemType, content string) {
 }
 
 func (a *App) domReady(ctx context.Context) {
+	logger.Info("Frontend DOM ready event received")
 	if a.startHidden {
 		runtime.WindowHide(ctx)
 	}
@@ -177,7 +178,7 @@ func (a *App) ensureAutostart(homeDir string) {
 Type=Application
 Name=Clipboard-Gnome
 Comment=Hybrid Wayland Clipboard Manager
-Exec=%s --hidden
+Exec=env WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 %s --hidden
 Icon=%s
 Terminal=false
 Categories=Utility;
@@ -196,7 +197,7 @@ X-GNOME-Autostart-enabled=true
 Type=Application
 Name=Clipboard-Gnome
 Comment=Hybrid Wayland Clipboard Manager
-Exec=%s
+Exec=env WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 %s
 Icon=%s
 Terminal=false
 Categories=Utility;
@@ -219,6 +220,7 @@ func (a *App) GetHistory(query, tag string, pinnedOnly bool, limit, offset int) 
 		logger.Error("GetHistory error: %v", err)
 		return []db.ClipboardItem{}
 	}
+	logger.Info("GetHistory returned %d items (query=%q, tag=%q, pinnedOnly=%v)", len(items), query, tag, pinnedOnly)
 	return items
 }
 

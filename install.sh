@@ -4,6 +4,20 @@ set -e
 # Support PATH for Go and Linuxbrew if available
 export PATH=/home/linuxbrew/.linuxbrew/bin:/usr/local/go/bin:$HOME/go/bin:$PATH
 
+# Ensure Wayland/X11/DBus environment if running from non-login or subagent shell
+if [ -z "$XDG_RUNTIME_DIR" ]; then
+    export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+fi
+if [ -z "$WAYLAND_DISPLAY" ] && [ -S "$XDG_RUNTIME_DIR/wayland-0" ]; then
+    export WAYLAND_DISPLAY="wayland-0"
+fi
+if [ -z "$DISPLAY" ]; then
+    export DISPLAY=":0"
+fi
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && [ -S "$XDG_RUNTIME_DIR/bus" ]; then
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+fi
+
 FORCE=0
 for arg in "$@"; do
     case "$arg" in
@@ -38,6 +52,17 @@ if [ $missing -eq 1 ]; then
 fi
 
 echo "Dependencies satisfied."
+
+# Clean corrupted fontconfig cache symlinks if present (prevents WebKitWebProcess 100% CPU hang on Zorin/Ubuntu)
+if [ -d "$HOME/.cache/fontconfig" ]; then
+    if find "$HOME/.cache/fontconfig" -maxdepth 1 -type l 2>/dev/null | grep -q .; then
+        echo "Detected corrupted fontconfig cache symlinks; repairing cache..."
+        rm -rf "$HOME/.cache/fontconfig"
+        if command -v fc-cache >/dev/null 2>&1; then
+            fc-cache -vr >/dev/null 2>&1 || true
+        fi
+    fi
+fi
 
 # 2. Version Detection
 TARGET_BIN="$HOME/.local/bin/clipboard-gnome"
@@ -146,7 +171,7 @@ cat <<EOF > ~/.local/share/applications/clipboard-gnome.desktop
 Type=Application
 Name=Clipboard-Gnome
 Comment=Hybrid Wayland Clipboard Manager
-Exec=$TARGET_BIN
+Exec=env WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 $TARGET_BIN
 Icon=$HOME/.local/share/icons/clipboard-gnome.png
 Terminal=false
 Categories=Utility;
@@ -157,7 +182,7 @@ cat <<EOF > ~/.config/autostart/clipboard-gnome.desktop
 Type=Application
 Name=Clipboard-Gnome
 Comment=Hybrid Wayland Clipboard Manager
-Exec=$TARGET_BIN --hidden
+Exec=env WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 $TARGET_BIN --hidden
 Icon=$HOME/.local/share/icons/clipboard-gnome.png
 Terminal=false
 Categories=Utility;
@@ -166,7 +191,7 @@ EOF
 
 # 12. Start application
 echo "Starting Clipboard-Gnome (v$NEW_VERSION)..."
-nohup "$TARGET_BIN" --hidden > /dev/null 2>&1 &
+(nohup "$TARGET_BIN" --hidden > /dev/null 2>&1 &)
 
 echo ""
 echo "-----------------------------------"
