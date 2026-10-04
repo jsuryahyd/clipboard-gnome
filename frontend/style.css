@@ -745,16 +745,16 @@ kbd {
     position: fixed;
     width: 360px;
     max-height: 300px;
-    background: var(--bg-card);
+    background: #1e293b;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
     display: flex;
     flex-direction: column;
     z-index: 1000;
     opacity: 0;
     transition: opacity 0.15s ease;
-    backdrop-filter: blur(10px);
+    backdrop-filter: none;
 }
 
 .preview-popup.visible {
@@ -762,12 +762,21 @@ kbd {
 }
 
 .preview-header {
-    padding: 10px 14px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(0, 0, 0, 0.1);
+    background: #0f172a;
+    border-top-left-radius: var(--radius-md);
+    border-top-right-radius: var(--radius-md);
+}
+
+.preview-popup #btn-preview-pin.active {
+    color: var(--accent-star, #fbbf24);
+}
+.preview-popup #btn-preview-pin.active svg {
+    fill: var(--accent-star, #fbbf24);
 }
 
 .preview-body {

@@ -204,12 +204,13 @@ func (d *DB) TogglePin(id int64) (bool, error) {
 	}
 
 	newPinned := !item.Pinned
-	pinnedInt := 0
 	if newPinned {
-		pinnedInt = 1
+		_, err = d.conn.Exec("UPDATE clipboard_items SET pinned = 1 WHERE id = ?", id)
+	} else {
+		// When unpinning: refresh created_at to CURRENT_TIMESTAMP so the item lands
+		// at the top of the unpinned stack instead of disappearing into old history
+		_, err = d.conn.Exec("UPDATE clipboard_items SET pinned = 0, created_at = CURRENT_TIMESTAMP WHERE id = ?", id)
 	}
-
-	_, err = d.conn.Exec("UPDATE clipboard_items SET pinned = ? WHERE id = ?", pinnedInt, id)
 	if err != nil {
 		return false, fmt.Errorf("failed to update pinned status: %w", err)
 	}

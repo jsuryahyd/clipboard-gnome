@@ -293,6 +293,14 @@ function setupEventListeners() {
 
     // Keyboard Shortcuts
     document.addEventListener('keydown', handleGlobalKeydown);
+
+    // Auto-hide window when focus is lost to another application
+    window.addEventListener('blur', () => {
+        hidePreview();
+        if (window.go && window.go.main && window.go.main.App) {
+            window.go.main.App.HideWindow();
+        }
+    });
 }
 
 function setupWailsEventListeners() {
@@ -356,7 +364,7 @@ function updateIncognitoUI() {
     }
 }
 
-async function loadHistory() {
+async function loadHistory(targetItemId = null) {
     try {
         let pinnedOnly = (activeFilter === 'pinned');
         let tagFilter = '';
@@ -379,7 +387,20 @@ async function loadHistory() {
             historyItems = historyItems.filter(i => i.type === 'image');
         }
 
-        selectedIndex = 0;
+        if (targetItemId !== null) {
+            let idx = historyItems.findIndex(i => i.id === targetItemId);
+            if (idx !== -1) {
+                selectedIndex = idx;
+            } else {
+                let firstUnpinned = historyItems.findIndex(i => !i.pinned);
+                selectedIndex = firstUnpinned !== -1 ? firstUnpinned : 0;
+            }
+        } else {
+            // Default: highlight the first unpinned item (most recently copied item)
+            let firstUnpinned = historyItems.findIndex(i => !i.pinned);
+            selectedIndex = firstUnpinned !== -1 ? firstUnpinned : 0;
+        }
+
         renderItems();
     } catch (e) {
         console.error("Error loading history:", e);
@@ -512,6 +533,27 @@ function setupPopupInteraction() {
         previewPopup.addEventListener('mouseleave', () => {
             hideTimeout = setTimeout(() => hidePreview(), 50);
         });
+        const btnPreviewCopy = document.getElementById('btn-preview-copy');
+        const btnPreviewPin = document.getElementById('btn-preview-pin');
+        const btnPreviewDelete = document.getElementById('btn-preview-delete');
+
+        if (btnPreviewCopy) {
+            btnPreviewCopy.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentPreviewId !== null) {
+                    selectAndPaste(currentPreviewId);
+                    hidePreview();
+                }
+            });
+        }
+        if (btnPreviewPin) {
+            btnPreviewPin.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentPreviewId !== null) {
+                    togglePinItem(currentPreviewId);
+                }
+            });
+        }
         if (btnPreviewDelete) {
             btnPreviewDelete.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -539,6 +581,17 @@ function showPreview(item, cardElement) {
     previewType.textContent = item.type;
     previewType.className = `badge ${item.type === 'image' ? 'badge-image' : 'badge-text'}`;
     previewTime.textContent = formatTimeAgo(item.created_at);
+
+    const btnPreviewPin = document.getElementById('btn-preview-pin');
+    if (btnPreviewPin) {
+        if (item.pinned) {
+            btnPreviewPin.classList.add('active');
+            btnPreviewPin.title = "Unpin item";
+        } else {
+            btnPreviewPin.classList.remove('active');
+            btnPreviewPin.title = "Pin item";
+        }
+    }
     
     if (item.type === 'image') {
         previewContent.innerHTML = `<img src="${item.content}" alt="Preview">`;
@@ -700,7 +753,7 @@ async function togglePinItem(id) {
         if (window.go && window.go.main && window.go.main.App) {
             const pinned = await window.go.main.App.TogglePin(id);
             showToast(pinned ? "Item pinned" : "Item unpinned");
-            await loadHistory();
+            await loadHistory(id);
         }
     } catch (e) {
         console.error("Toggle pin error:", e);
