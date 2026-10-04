@@ -92,20 +92,20 @@ async function applySavedTheme() {
 }
 
 const singleToneThemes = {
-    midnight:    { bg: 'rgba(15, 23, 42, 0.94)',  card: 'rgba(15, 23, 42, 0.6)',  accent: '#6366f1', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(15, 23, 42, 0.2)' },
-    pitch:       { bg: 'rgba(0, 0, 0, 0.94)',     card: 'rgba(0, 0, 0, 0.6)',     accent: '#3b82f6', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(0, 0, 0, 0.2)' },
-    charcoal:    { bg: 'rgba(28, 25, 23, 0.94)',  card: 'rgba(28, 25, 23, 0.6)',  accent: '#f59e0b', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(28, 25, 23, 0.2)' },
-    'light-cream': { bg: 'rgba(253, 251, 247, 0.94)', card: 'rgba(255, 255, 255, 0.7)', accent: '#6366f1', text: '#1e293b', textSec: '#475569', overlay: 'rgba(0, 0, 0, 0.05)' },
-    'light-beige': { bg: 'rgba(245, 245, 240, 0.94)', card: 'rgba(250, 250, 248, 0.7)', accent: '#d97706', text: '#333333', textSec: '#5c5c5c', overlay: 'rgba(0, 0, 0, 0.05)' }
+    midnight:    { bg: 'rgba(15, 23, 42, 0.94)',  card: 'rgba(15, 23, 42, 0.6)',  solidCard: '#1e293b', popupHeader: '#0f172a', accent: '#6366f1', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(15, 23, 42, 0.2)' },
+    pitch:       { bg: 'rgba(0, 0, 0, 0.94)',     card: 'rgba(0, 0, 0, 0.6)',     solidCard: '#121212', popupHeader: '#1a1a1a', accent: '#3b82f6', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(0, 0, 0, 0.2)' },
+    charcoal:    { bg: 'rgba(28, 25, 23, 0.94)',  card: 'rgba(28, 25, 23, 0.6)',  solidCard: '#292524', popupHeader: '#1c1917', accent: '#f59e0b', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(28, 25, 23, 0.2)' },
+    'light-cream': { bg: 'rgba(253, 251, 247, 0.94)', card: 'rgba(255, 255, 255, 0.7)', solidCard: '#ffffff', popupHeader: '#f1ece1', accent: '#6366f1', text: '#1e293b', textSec: '#475569', overlay: 'rgba(0, 0, 0, 0.05)' },
+    'light-beige': { bg: 'rgba(245, 245, 240, 0.94)', card: 'rgba(250, 250, 248, 0.7)', solidCard: '#ffffff', popupHeader: '#e8e8e0', accent: '#d97706', text: '#333333', textSec: '#5c5c5c', overlay: 'rgba(0, 0, 0, 0.05)' }
 };
 
 const dualToneThemes = {
-    tokyo:       { bg: 'rgba(26, 27, 38, 0.94)',  card: 'rgba(36, 40, 59, 0.7)',  accent: '#7aa2f7', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(15, 23, 42, 0.2)' },
-    dracula:     { bg: 'rgba(40, 42, 54, 0.94)',  card: 'rgba(68, 71, 90, 0.7)',  accent: '#bd93f9', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(15, 23, 42, 0.2)' },
-    nord:        { bg: 'rgba(46, 52, 64, 0.94)',  card: 'rgba(59, 66, 82, 0.7)',  accent: '#88c0d0', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(15, 23, 42, 0.2)' },
-    slate:       { bg: 'rgba(15, 23, 42, 0.94)',  card: 'rgba(30, 41, 59, 0.7)',  accent: '#6366f1', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(15, 23, 42, 0.2)' },
-    'light-cream': { bg: 'rgba(240, 235, 225, 0.94)', card: 'rgba(253, 251, 247, 0.7)', accent: '#6366f1', text: '#1e293b', textSec: '#475569', overlay: 'rgba(0, 0, 0, 0.08)' },
-    'light-beige': { bg: 'rgba(235, 230, 220, 0.94)', card: 'rgba(245, 245, 240, 0.7)', accent: '#d97706', text: '#333333', textSec: '#5c5c5c', overlay: 'rgba(0, 0, 0, 0.08)' }
+    tokyo:       { bg: 'rgba(26, 27, 38, 0.94)',  card: 'rgba(36, 40, 59, 0.7)',  solidCard: '#24283b', popupHeader: '#16161e', accent: '#7aa2f7', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(15, 23, 42, 0.2)' },
+    dracula:     { bg: 'rgba(40, 42, 54, 0.94)',  card: 'rgba(68, 71, 90, 0.7)',  solidCard: '#44475a', popupHeader: '#21222c', accent: '#bd93f9', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(15, 23, 42, 0.2)' },
+    nord:        { bg: 'rgba(46, 52, 64, 0.94)',  card: 'rgba(59, 66, 82, 0.7)',  solidCard: '#3b4252', popupHeader: '#272c36', accent: '#88c0d0', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(15, 23, 42, 0.2)' },
+    slate:       { bg: 'rgba(15, 23, 42, 0.94)',  card: 'rgba(30, 41, 59, 0.7)',  solidCard: '#1e293b', popupHeader: '#0f172a', accent: '#6366f1', text: '#f8fafc', textSec: '#94a3b8', overlay: 'rgba(15, 23, 42, 0.2)' },
+    'light-cream': { bg: 'rgba(240, 235, 225, 0.94)', card: 'rgba(253, 251, 247, 0.7)', solidCard: '#ffffff', popupHeader: '#e5dfd3', accent: '#6366f1', text: '#1e293b', textSec: '#475569', overlay: 'rgba(0, 0, 0, 0.08)' },
+    'light-beige': { bg: 'rgba(235, 230, 220, 0.94)', card: 'rgba(245, 245, 240, 0.7)', solidCard: '#ffffff', popupHeader: '#dfd9cd', accent: '#d97706', text: '#333333', textSec: '#5c5c5c', overlay: 'rgba(0, 0, 0, 0.08)' }
 };
 
 function updateThemeDropdown(selectedValue) {
@@ -141,10 +141,12 @@ function applyThemeToDOM(s) {
     
     root.style.setProperty('--bg-main', t.bg);
     root.style.setProperty('--bg-card', t.card);
+    root.style.setProperty('--bg-solid', t.solidCard || '#1e293b');
+    root.style.setProperty('--bg-popup-header', t.popupHeader || '#0f172a');
     root.style.setProperty('--accent-indigo', t.accent);
     root.style.setProperty('--text-primary', t.text);
     root.style.setProperty('--text-secondary', t.textSec);
-    root.style.setProperty('--text-muted', t.textSec); // Using textSec for both for simplicity
+    root.style.setProperty('--text-muted', t.textSec);
     
     // Header/app background sync
     const appContainer = document.querySelector('.app-container');
@@ -773,10 +775,12 @@ async function deleteItem(id) {
 }
 
 async function clearHistory() {
+    hidePreview();
     confirmModal.classList.remove('hidden');
 }
 
 async function openSettings() {
+    hidePreview();
     try {
         if (window.go && window.go.main && window.go.main.App) {
             const s = await window.go.main.App.GetSettings();
