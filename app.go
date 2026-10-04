@@ -118,6 +118,7 @@ func (a *App) domReady(ctx context.Context) {
 
 func (a *App) onShowUI() {
 	logger.Info("ShowUI requested (showing window)")
+	compat.ApplyGtkTaskbarHints()
 	if a.ctx != nil {
 		runtime.WindowShow(a.ctx)
 		runtime.WindowUnminimise(a.ctx)

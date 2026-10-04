@@ -59,6 +59,7 @@ func main() {
 			Icon:                icon,
 			WindowIsTranslucent: false,
 			WebviewGpuPolicy:    linux.WebviewGpuPolicyNever,
+			ProgramName:         "clipboard-gnome",
 		},
 		Bind: []interface{}{
 			app,

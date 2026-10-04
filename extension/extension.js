@@ -6,6 +6,7 @@ import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 const DBUS_IFACE_GNOME = `
 <node>
@@ -51,6 +52,7 @@ export default class ClipboardExtension extends Extension {
         this._pollTimerId = 0;
         this._dbusImpl = null;
         this._dbusImplLegacy = null;
+        this._indicator = null;
         this._keybindingName = 'toggle-clipboard-gnome';
 
         // 1. Export DBus Interfaces on Session Bus
@@ -75,18 +77,27 @@ export default class ClipboardExtension extends Extension {
 
         // 3. Register Global Hotkey
         this._registerHotkey();
+
+        // 4. Create System Tray Panel Indicator
+        this._createPanelIndicator();
     }
 
     disable() {
         console.log('[Clipboard-Gnome] Disabling extension bridge...');
 
-        // 1. Stop Clipboard Polling
+        // 1. Destroy System Tray Panel Indicator
+        if (this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
+        }
+
+        // 2. Stop Clipboard Polling
         this._stopClipboardMonitoring();
 
-        // 2. Unregister Hotkey
+        // 3. Unregister Hotkey
         this._unregisterHotkey();
 
-        // 3. Unexport DBus
+        // 4. Unexport DBus
         if (this._dbusImpl) {
             this._dbusImpl.unexport();
             this._dbusImpl = null;
@@ -94,6 +105,28 @@ export default class ClipboardExtension extends Extension {
         if (this._dbusImplLegacy) {
             this._dbusImplLegacy.unexport();
             this._dbusImplLegacy = null;
+        }
+    }
+
+    _createPanelIndicator() {
+        try {
+            this._indicator = new PanelMenu.Button(0.0, 'Clipboard-Gnome', false);
+            const icon = new St.Icon({
+                icon_name: 'edit-paste-symbolic',
+                style_class: 'system-status-icon',
+            });
+            this._indicator.add_child(icon);
+
+            this._indicator.connect('button-press-event', () => {
+                console.log('[Clipboard-Gnome] System tray indicator clicked, showing UI');
+                this._emitSignal('ShowUI', null);
+                this._activateClipboardWindow();
+            });
+
+            Main.panel.addToStatusArea('clipboard-gnome-indicator', this._indicator);
+            console.log('[Clipboard-Gnome] System tray panel indicator added to GNOME top bar');
+        } catch (e) {
+            console.error(`[Clipboard-Gnome] Error creating panel indicator: ${e}`);
         }
     }
 
@@ -183,6 +216,9 @@ export default class ClipboardExtension extends Extension {
             if (app) {
                 const windows = app.get_windows();
                 if (windows && windows.length > 0) {
+                    for (const win of windows) {
+                        win.skip_taskbar = true;
+                    }
                     Main.activateWindow(windows[0]);
                     return true;
                 }
@@ -195,6 +231,7 @@ export default class ClipboardExtension extends Extension {
                 const wmClass = (win.get_wm_class() || '').toLowerCase();
                 const title = (win.get_title() || '').toLowerCase();
                 if (wmClass.includes('clipboard-gnome') || title.includes('clipboard-gnome')) {
+                    win.skip_taskbar = true;
                     Main.activateWindow(win);
                     return true;
                 }
