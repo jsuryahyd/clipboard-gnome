@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"embed"
-	"fmt"
 	"log"
 	"os"
-	"path/filepath"
+
+	"clipboard-gnome/internal/compat"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -21,64 +21,8 @@ var assets embed.FS
 var icon []byte
 
 func init() {
-	cleanFontconfigCacheIfCorrupted()
-
-	// WebKitGTK 2.52+ on Wayland / Mesa can cause WebKitWebProcess hangs or blank
-	// rendering with accelerated compositing / DMA-BUF. Disabling DMA-BUF renderer
-	// and compositing mode ensures reliable rendering on Wayland.
-	if os.Getenv("WEBKIT_DISABLE_DMABUF_RENDERER") == "" {
-		_ = os.Setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
-	}
-	if os.Getenv("WEBKIT_DISABLE_COMPOSITING_MODE") == "" {
-		_ = os.Setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
-	}
-
-	// Auto-detect Wayland environment if running from non-login or subshell environment
-	if os.Getenv("WAYLAND_DISPLAY") == "" {
-		runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-		if runtimeDir == "" {
-			runtimeDir = fmt.Sprintf("/run/user/%d", os.Getuid())
-		}
-		if _, err := os.Stat(filepath.Join(runtimeDir, "wayland-0")); err == nil {
-			_ = os.Setenv("WAYLAND_DISPLAY", "wayland-0")
-			if os.Getenv("GDK_BACKEND") == "" {
-				_ = os.Setenv("GDK_BACKEND", "wayland")
-			}
-		}
-	} else if os.Getenv("GDK_BACKEND") == "" {
-		_ = os.Setenv("GDK_BACKEND", "wayland")
-	}
-}
-
-// cleanFontconfigCacheIfCorrupted detects and removes circular or problematic symlinks
-// in ~/.cache/fontconfig, which causes WebKitWebProcess to peg CPU at 100% and hang
-// on Zorin OS / Ubuntu.
-func cleanFontconfigCacheIfCorrupted() {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return
-	}
-	cacheDir := filepath.Join(home, ".cache", "fontconfig")
-	entries, err := os.ReadDir(cacheDir)
-	if err != nil {
-		return
-	}
-	hasSymlinks := false
-	for _, entry := range entries {
-		info, err := entry.Info()
-		if err == nil && (info.Mode()&os.ModeSymlink != 0) {
-			hasSymlinks = true
-			break
-		}
-	}
-	if hasSymlinks {
-		for _, entry := range entries {
-			info, err := entry.Info()
-			if err == nil && (info.Mode()&os.ModeSymlink != 0) {
-				_ = os.Remove(filepath.Join(cacheDir, entry.Name()))
-			}
-		}
-	}
+	// Initialize system compatibility workarounds before GTK/WebKit startup
+	compat.InitPlatformCompat()
 }
 
 func main() {

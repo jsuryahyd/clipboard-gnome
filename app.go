@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"clipboard-gnome/internal/compat"
 	"clipboard-gnome/internal/db"
 	"clipboard-gnome/internal/dbus"
 	"clipboard-gnome/internal/logger"
@@ -178,12 +179,12 @@ func (a *App) ensureAutostart(homeDir string) {
 Type=Application
 Name=Clipboard-Gnome
 Comment=Hybrid Wayland Clipboard Manager
-Exec=env WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 %s --hidden
+Exec=%s
 Icon=%s
 Terminal=false
 Categories=Utility;
 X-GNOME-Autostart-enabled=true
-`, execPath, iconPath)
+`, compat.GetDesktopExecCmd(execPath, true), iconPath)
 
 	desktopPath := filepath.Join(autostartDir, "clipboard-gnome.desktop")
 	err = os.WriteFile(desktopPath, []byte(autostartContent), 0644)
@@ -197,11 +198,11 @@ X-GNOME-Autostart-enabled=true
 Type=Application
 Name=Clipboard-Gnome
 Comment=Hybrid Wayland Clipboard Manager
-Exec=env WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 %s
+Exec=%s
 Icon=%s
 Terminal=false
 Categories=Utility;
-`, execPath, iconPath)
+`, compat.GetDesktopExecCmd(execPath, false), iconPath)
 
 	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
 	_ = os.MkdirAll(appsDir, 0755)
